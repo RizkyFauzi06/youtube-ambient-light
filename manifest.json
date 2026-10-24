@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Ambient Light Mentor",
+  "version": "1.0",
+  "description": "Menambahkan efek ambient light di belakang video YouTube.",
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
