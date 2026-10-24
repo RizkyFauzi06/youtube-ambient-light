@@ -1,99 +1,177 @@
-console.log("✅ Ekstensi Ambient Light: Versi Smart Crop & Optical Scaling (Level Senior)!");
+console.log("YouTube Ambient Light: Initialized");
 
+const DEFAULT_SETTINGS = {
+    isAktif: true,
+    opacity: 80
+};
+
+let pengaturan = { ...DEFAULT_SETTINGS };
+let temaGelap = document.documentElement.hasAttribute("dark");
+
+// Memeriksa video utama dan memasang ambient light jika belum ada.
 setInterval(() => {
-    const elemenVideo = document.querySelector('video.html5-main-video');
-    const kanvasLama = document.getElementById('vibe-ambient-canvas');
+    const video = document.querySelector("video.html5-main-video");
+    const canvasLama = document.getElementById("vibe-ambient-canvas");
 
-    if (elemenVideo && !kanvasLama) {
-        pasangAmbientLight(elemenVideo);
+    if (video && !canvasLama) {
+        pasangAmbientLight(video);
     }
 }, 1500);
 
-function pasangAmbientLight(elemenVideo) {
-    const playerUtama = document.querySelector('.html5-video-player');
-    if (!playerUtama) return;
+function pasangAmbientLight(video) {
+    const player = document.querySelector(".html5-video-player");
 
-    const kanvasCahaya = document.createElement('canvas');
-    kanvasCahaya.id = 'vibe-ambient-canvas';
-    
-    // TRIK OPTIMASI GPU: OPTICAL SCALING
-    kanvasCahaya.style.position = 'absolute';
-    kanvasCahaya.style.top = '50%';
-    kanvasCahaya.style.left = '50%';
-    
-    // Ukuran CSS kita buat sangat KECIL (hanya 10% dari layar)
-    kanvasCahaya.style.width = '10vw'; 
-    kanvasCahaya.style.height = '10vh';
-    
-    // Tapi kita PERBESAR (Scale) 15x lipat agar menutupi seluruh layar (150vw)
-    kanvasCahaya.style.transform = 'translate(-50%, -50%) scale(15)'; 
-    kanvasCahaya.style.zIndex = '-1'; 
-    kanvasCahaya.style.pointerEvents = 'none';
-    
-    // Memberi tahu browser untuk mempersiapkan GPU agar tidak kaget (Hardware Acceleration)
-    kanvasCahaya.style.willChange = 'transform, filter';
+    if (!player) return;
 
-    // Karena di-scale 15x, nilai blur cukup 4px saja (4 * 15 = 60px visual blur). Ini sangat ringan!
-    const isDarkTheme = document.documentElement.hasAttribute('dark');
-    if (isDarkTheme) {
-        kanvasCahaya.style.filter = 'blur(3px) saturate(150%) opacity(0.8)';
-    } else {
-        kanvasCahaya.style.filter = 'blur(3px) saturate(200%) opacity(0.5)';
-        kanvasCahaya.style.mixBlendMode = 'multiply'; 
-    }
+    const canvas = document.createElement("canvas");
+    canvas.id = "vibe-ambient-canvas";
 
-    playerUtama.insertBefore(kanvasCahaya, playerUtama.firstChild);
+    // Pertahankan pendekatan Optical Scaling.
+    Object.assign(canvas.style, {
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        width: "10vw",
+        height: "10vh",
+        transform: "translate(-50%, -50%) scale(15)",
+        zIndex: "-1",
+        pointerEvents: "none",
+        willChange: "transform, filter"
+    });
 
-    // CSS Perbaikan Fullscreen
-    const style = document.createElement('style');
-    style.innerHTML = `
-        ::backdrop { background: transparent !important; }
-        .html5-video-player.ytp-fullscreen, .html5-video-player, #ytd-player {
+    player.insertBefore(canvas, player.firstChild);
+
+    // Pertahankan CSS dasar dari versi sebelumnya.
+    const style = document.createElement("style");
+    style.id = "vibe-ambient-style";
+    style.textContent = `
+        ::backdrop {
+            background: transparent !important;
+        }
+        .html5-video-player.ytp-fullscreen,
+        .html5-video-player,
+        #ytd-player {
             background: transparent !important;
             background-color: transparent !important;
             overflow: visible !important;
         }
+
         #columns, ytd-comments {
             background: rgba(0, 0, 0, 0.9) !important;
-            border-radius: 12px; padding: 20px; margin-top: 15px;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
         }
-        ytd-app, #page-manager { background: transparent !important; }
-        #cinematics-container { display: none !important; }
-    `;
-    document.head.appendChild(style);
 
-    const ctx = kanvasCahaya.getContext('2d', { alpha: false });
-    
+        ytd-app, #page-manager {
+            background: transparent !important;
+        }
+
+        #cinematics-container {
+            display: none !important;
+        }
+    `;
+
+    if (!document.getElementById("vibe-ambient-style")) {
+        document.head.appendChild(style);
+    }
+    const ctx = canvas.getContext("2d", { alpha: false });
     let waktuTerakhirRender = 0;
-    // FPS kita naikkan sedikit ke 20 agar cahayanya mulus, karena GPU sekarang sudah tidak terbebani
-    const TARGET_FPS = 20; 
-    const INTERVAL_RENDER = 1000 / TARGET_FPS;
+    const INTERVAL_RENDER = 1000 / 20;
 
     function renderCahaya(timestamp) {
         if (timestamp - waktuTerakhirRender >= INTERVAL_RENDER) {
-            if (elemenVideo && !elemenVideo.paused && !elemenVideo.ended) {
-                // Resolusi render internal kanvas
-                kanvasCahaya.width = 64;  
-                kanvasCahaya.height = 36;
-                
-                // SOLUSI VIDEO SINEMATIK: SMART CROP
-                // Kita potong 12% dari atas dan 12% dari bawah untuk menghindari hardcoded black bars
-                const potongY = elemenVideo.videoHeight * 0.12; 
-                const tinggiBersih = elemenVideo.videoHeight * 0.76; // (100% - 12% - 12%)
+            if (!video.paused && !video.ended) {
+                // Hindari mereset canvas jika ukurannya tidak berubah.
+                if (canvas.width !== 64) canvas.width = 64;
+                if (canvas.height !== 36) canvas.height = 36;
 
-                // Periksa agar video tidak crash jika dimensinya belum terbaca
-                if (elemenVideo.videoWidth > 0 && elemenVideo.videoHeight > 0) {
-                    ctx.drawImage(
-                        elemenVideo,
-                        0, potongY, elemenVideo.videoWidth, tinggiBersih, // Koordinat & ukuran sumber yang mau difoto (dicrop)
-                        0, 0, kanvasCahaya.width, kanvasCahaya.height // Koordinat & ukuran tujuan di kanvas
-                    );
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    const potongY = video.videoHeight * 0.12;
+                    const tinggiBersih = video.videoHeight * 0.76;
+
+                    ctx.drawImage(video,0,potongY,video.videoWidth,
+                        tinggiBersih,0,0,canvas.width,canvas.height);
                 }
             }
+
             waktuTerakhirRender = timestamp;
         }
+
         requestAnimationFrame(renderCahaya);
     }
-    
+
+    // Terapkan pengaturan setelah canvas dibuat.
+    terapkanPengaturan();
     requestAnimationFrame(renderCahaya);
 }
+
+// PBI 5: terapkan pengaturan popup.
+// TODO: Buat di dalam pengaturan Youtube / CSS injection
+function terapkanPengaturan() {
+    const canvas = document.getElementById("vibe-ambient-canvas");
+
+    // Pengaturan tetap tersimpan meskipun canvas belum dibuat.
+    if (!canvas) return;
+
+    if (!pengaturan.isAktif) {
+        canvas.style.display = "none";
+        return;
+    }
+
+    canvas.style.display = "block";
+
+    const opacity = Math.max(0,Math.min(100, Number(pengaturan.opacity))) / 100;
+
+    temaGelap = document.documentElement.hasAttribute("dark");
+
+    const filterBase = temaGelap
+        ? "blur(4px) saturate(150%)"
+        : "blur(4px) saturate(200%)";
+
+    canvas.style.filter = `${filterBase} opacity(${opacity})`;
+
+    if (temaGelap) {
+        canvas.style.removeProperty("mix-blend-mode");
+    } else {
+        canvas.style.mixBlendMode = "multiply";
+    }
+}
+
+// Baca pengaturan tersimpan saat content script dijalankan.
+chrome.storage.local.get(DEFAULT_SETTINGS, (data) => {
+    pengaturan = {
+        isAktif: data.isAktif,
+        opacity: Number(data.opacity)
+    };
+    terapkanPengaturan();
+});
+
+// Dengarkan perubahan dari popup.
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace !== "local") return;
+    if (changes.isAktif) {
+        pengaturan.isAktif = changes.isAktif.newValue;
+    }
+
+    if (changes.opacity) {
+        pengaturan.opacity = Number(changes.opacity.newValue);
+    }
+
+    terapkanPengaturan();
+});
+
+// PBI 3: deteksi perubahan tema tanpa refresh.
+const themeObserver = new MutationObserver(() => {
+    const temaBaru = document.documentElement.hasAttribute("dark");
+
+    if (temaBaru !== temaGelap) {
+        temaGelap = temaBaru;
+        terapkanPengaturan();
+    }
+});
+
+themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["dark"]
+});

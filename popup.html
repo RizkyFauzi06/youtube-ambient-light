@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            width: 250px;
+            padding: 16px;
+            margin: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", sans-serif;
+            background: #202020;
+            color: #fff;
+        }
+
+        h3 {
+            margin: 0 0 18px;
+            padding-bottom: 10px;
+            font-size: 16px;
+            border-bottom: 1px solid #444;
+        }
+
+        .setting {
+            margin-bottom: 18px;
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        label {
+            font-size: 13px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-top: 10px;
+            accent-color: #55cc88;
+        }
+
+        .value {
+            color: #55cc88;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>💡 Ambient Light</h3>
+
+    <div class="setting toggle-row">
+        <label for="toggle-aktif">Aktifkan efek</label>
+        <input type="checkbox" id="toggle-aktif">
+    </div>
+
+    <div class="setting">
+        <div class="toggle-row">
+            <label for="slider-opacity">Intensitas cahaya</label>
+            <span class="value" id="nilai-opacity">80%</span>
+        </div>
+
+        <input
+            type="range"
+            id="slider-opacity"
+            min="0"
+            max="100"
+            value="80"
+        >
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
