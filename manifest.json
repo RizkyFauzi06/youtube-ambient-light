@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "YouTube Ambient Light Mentor",
+    "name": "YouTube Ambient Light",
     "version": "1.3.0",
     "description": "Menambahkan efek ambient light dinamis di belakang video YouTube.",
     "permissions": [
