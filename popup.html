@@ -6,8 +6,8 @@
 
     <style>
         body {
-            width: 250px;
-            padding: 16px;
+            width: 260px;
+            padding: 18px;
             margin: 0;
             box-sizing: border-box;
             font-family: "Segoe UI", sans-serif;
@@ -15,63 +15,73 @@
             color: #fff;
         }
 
-        h3 {
-            margin: 0 0 18px;
-            padding-bottom: 10px;
-            font-size: 16px;
-            border-bottom: 1px solid #444;
-        }
-
-        .setting {
-            margin-bottom: 18px;
-        }
-
-        .toggle-row {
+        .header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
         }
 
-        label {
+        .icon {
+            font-size: 25px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .description {
+            margin: 0 0 16px;
+            color: #c7c7c7;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .notice {
+            padding: 12px;
+            border-radius: 8px;
+            background: #303030;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .notice strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #8ce0ad;
             font-size: 13px;
         }
 
-        input[type="range"] {
-            width: 100%;
-            margin-top: 10px;
-            accent-color: #55cc88;
-        }
-
-        .value {
-            color: #55cc88;
-            font-size: 12px;
+        .footer {
+            margin-top: 14px;
+            color: #999;
+            font-size: 11px;
         }
     </style>
 </head>
 
 <body>
-    <h3>💡 Ambient Light</h3>
+    <header class="header">
+        <span class="icon" aria-hidden="true">💡</span>
+        <h1>YouTube Ambient Light</h1>
+    </header>
 
-    <div class="setting toggle-row">
-        <label for="toggle-aktif">Aktifkan efek</label>
-        <input type="checkbox" id="toggle-aktif">
-    </div>
+    <p class="description">
+        Nikmati efek cahaya ambient yang mengikuti warna video
+        YouTube yang sedang diputar.
+    </p>
 
-    <div class="setting">
-        <div class="toggle-row">
-            <label for="slider-opacity">Intensitas cahaya</label>
-            <span class="value" id="nilai-opacity">80%</span>
-        </div>
+    <section class="notice">
+        <strong>Pengaturan Ambient Light</strong>
+        Buka video YouTube, klik ikon ⚙️ pada pemutar,
+        lalu pilih Ambient Light untuk mengatur status dan
+        intensitas cahaya.
+    </section>
 
-        <input
-            type="range"
-            id="slider-opacity"
-            min="0"
-            max="100"
-            value="80"
-        >
-    </div>
-
-    <script src="popup.js"></script>
+    <footer class="footer">
+        Pengaturan tersimpan secara otomatis.
+    </footer>
 </body>
 </html>

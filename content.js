@@ -44,11 +44,12 @@ function pasangAmbientLight(video) {
     // Pertahankan CSS dasar dari versi sebelumnya.
     const style = document.createElement("style");
     style.id = "vibe-ambient-style";
+
     style.textContent = `
         ::backdrop {
             background: transparent !important;
         }
-        .html5-video-player.ytp-fullscreen,
+
         .html5-video-player,
         #ytd-player {
             background: transparent !important;
@@ -56,22 +57,11 @@ function pasangAmbientLight(video) {
             overflow: visible !important;
         }
 
-        #columns, ytd-comments {
-            background: rgba(0, 0, 0, 0.9) !important;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 15px;
-        }
-
-        ytd-app, #page-manager {
-            background: transparent !important;
-        }
-
         #cinematics-container {
             display: none !important;
         }
     `;
-
+  
     if (!document.getElementById("vibe-ambient-style")) {
         document.head.appendChild(style);
     }
@@ -174,4 +164,245 @@ const themeObserver = new MutationObserver(() => {
 themeObserver.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["dark"]
+});
+
+// PBI 6: Kontrol Ambient Light di menu pengaturan YouTube.
+
+let ambientMenuControls = null;
+let timeoutSimpanOpacity = null;
+
+function perbaruiKontrolAmbient() {
+    if (!ambientMenuControls) return;
+
+    const { toggle, slider, nilai, panelOpacity } = ambientMenuControls;
+
+    toggle.setAttribute("aria-checked", String(pengaturan.isAktif));
+    toggle.querySelector(".ytp-menuitem-content").textContent =
+        pengaturan.isAktif ? "Aktif" : "Nonaktif";
+
+    // Tampilkan pengaturan intensitas hanya saat Ambient Light aktif.
+    panelOpacity.hidden = !pengaturan.isAktif;
+
+    slider.value = pengaturan.opacity;
+    nilai.textContent = `${pengaturan.opacity}%`;
+}
+
+function tambahKontrolAmbient(player) {
+    const menu = player.querySelector(
+        ".ytp-settings-menu .ytp-panel-menu"
+    );
+
+    if (!menu || menu.querySelector("#vibe-ambient-controls")) {
+        return;
+    }
+
+    const controls = document.createElement("div");
+    controls.id = "vibe-ambient-controls";
+
+    // Baris toggle dengan gaya menu YouTube.
+    const toggle = document.createElement("div");
+    toggle.className = "ytp-menuitem";
+    toggle.setAttribute("role", "menuitemcheckbox");
+    toggle.setAttribute("tabindex", "0");
+    toggle.setAttribute("aria-checked", String(pengaturan.isAktif));
+
+    toggle.innerHTML = `
+        <div class="ytp-menuitem-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24"
+                 aria-hidden="true">
+                <path fill="currentColor"
+                    d="M12 2a7 7 0 0 0-4 12.75V17h8v-2.25A7 7 0 0 0 12 2zm3 11.5-.5.35V15h-5v-1.15l-.5-.35a5 5 0 1 1 6 0zM9 19h6v-1H9v1zm1 2h4v-1h-4v1z"/>
+            </svg>
+        </div>
+        <div class="ytp-menuitem-label">Ambient Light</div>
+        <div class="ytp-menuitem-content"></div>
+    `;
+
+    function toggleAmbient() {
+        const aktifBaru = !pengaturan.isAktif;
+
+        // Perbarui efek langsung.
+        pengaturan.isAktif = aktifBaru;
+        terapkanPengaturan();
+        perbaruiKontrolAmbient();
+
+        // Simpan agar popup dan YouTube tetap sinkron.
+        chrome.storage.local.set({
+            isAktif: aktifBaru
+        });
+    }
+
+    toggle.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleAmbient();
+    });
+
+    toggle.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleAmbient();
+        }
+    });
+
+    // Bagian pengatur intensitas cahaya.
+    const panelOpacity = document.createElement("div");
+    panelOpacity.className = "vibe-ambient-opacity";
+
+    panelOpacity.innerHTML = `
+        <div class="vibe-ambient-opacity-header">
+            <label for="vibe-ambient-opacity-slider">
+                Intensitas cahaya
+            </label>
+            <span id="vibe-ambient-opacity-value">50%</span>
+        </div>
+
+        <input
+            type="range"
+            id="vibe-ambient-opacity-slider"
+            min="0"
+            max="100"
+            step="5"
+            value="${pengaturan.opacity}"
+            aria-label="Intensitas cahaya ambient"
+        >
+    `;
+
+    const slider = panelOpacity.querySelector("input");
+    const nilai = panelOpacity.querySelector(
+        "#vibe-ambient-opacity-value"
+    );
+
+    function simpanOpacity() {
+        clearTimeout(timeoutSimpanOpacity);
+
+        chrome.storage.local.set({
+            opacity: pengaturan.opacity
+        });
+    }
+
+    slider.addEventListener("input", (event) => {
+        event.stopPropagation();
+
+        const opacity = Number(slider.value);
+
+        // Terapkan perubahan secara langsung tanpa menunggu storage.
+        pengaturan.opacity = opacity;
+        nilai.textContent = `${opacity}%`;
+
+        terapkanPengaturan();
+
+        // Debounce agar tidak menulis storage pada setiap gerakan slider.
+        clearTimeout(timeoutSimpanOpacity);
+        timeoutSimpanOpacity = setTimeout(simpanOpacity, 150);
+    });
+
+    slider.addEventListener("change", () => {
+        simpanOpacity();
+    });
+
+    // Cegah interaksi slider mengganggu navigasi menu YouTube.
+    ["click", "pointerdown", "pointerup", "keydown", "keyup"].forEach(
+        (eventName) => {
+            slider.addEventListener(eventName, (event) => {
+                event.stopPropagation();
+            });
+        }
+    );
+
+    controls.append(toggle, panelOpacity);
+    menu.appendChild(controls);
+
+    ambientMenuControls = {
+        toggle,
+        slider,
+        nilai,
+        panelOpacity
+    };
+
+    pasangStyleKontrolAmbient();
+    perbaruiKontrolAmbient();
+}
+
+function pasangStyleKontrolAmbient() {
+    if (document.getElementById("vibe-ambient-controls-style")) {
+        return;
+    }
+
+    const style = document.createElement("style");
+    style.id = "vibe-ambient-controls-style";
+
+    style.textContent = `
+        #vibe-ambient-controls {
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            margin-top: 4px;
+            padding-top: 4px;
+        }
+
+        #vibe-ambient-controls .vibe-ambient-opacity {
+            padding: 10px 16px 14px 48px;
+            box-sizing: border-box;
+            color: inherit;
+            font-family: inherit;
+        }
+
+        #vibe-ambient-controls .vibe-ambient-opacity-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        #vibe-ambient-controls .vibe-ambient-opacity-header label {
+            color: inherit;
+        }
+
+        #vibe-ambient-controls #vibe-ambient-opacity-value {
+            min-width: 35px;
+            text-align: right;
+            opacity: 0.8;
+        }
+
+        #vibe-ambient-controls #vibe-ambient-opacity-slider {
+            display: block;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            cursor: pointer;
+            accent-color: #f00;
+        }
+    `;
+
+    document.head.appendChild(style);
+}
+
+// Sinkronisasi dengan popup ekstensi.
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace !== "local") return;
+
+    if (changes.isAktif) {
+        pengaturan.isAktif = changes.isAktif.newValue;
+    }
+
+    if (changes.opacity) {
+        pengaturan.opacity = Number(changes.opacity.newValue);
+    }
+
+    perbaruiKontrolAmbient();
+});
+
+// YouTube membangun menu secara dinamis, jadi amati perubahan DOM.
+const playerObserver = new MutationObserver(() => {
+    const player = document.querySelector(".html5-video-player");
+
+    if (player) {
+        tambahKontrolAmbient(player);
+    }
+});
+
+playerObserver.observe(document.documentElement, {
+    childList: true,
+    subtree: true
 });
