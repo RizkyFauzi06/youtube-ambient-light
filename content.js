@@ -66,65 +66,140 @@ function pasangAmbientLight(video) {
         document.head.appendChild(style);
     }
     const ctx = canvas.getContext("2d", { alpha: false });
-    let waktuTerakhirRender = 0;
-    const INTERVAL_RENDER = 1000 / 20;
+    
+    // --- MANAJEMEN RENDER & OPTIMASI TINGKAT LANJUT ---
+        const TARGET_FPS = 20; 
+    const INTERVAL_RENDER = 1000 / TARGET_FPS;
+    // Jadwal target render berikutnya (menggantikan waktuTerakhirRender)
+    let waktuRenderBerikutnya = null;
+    
+    let renderLoopId = null;
+    let isFramePertama = true; // Mencegah kilatan hitam, frame pertama langsung 100% opacity
+    
+    // Deteksi dukungan RVFC dari browser
+    const isMendukungRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
 
-    function renderCahaya(timestamp) {
-        if (timestamp - waktuTerakhirRender >= INTERVAL_RENDER) {
-            if (!video.paused && !video.ended) {
-                // Hindari mereset canvas jika ukurannya tidak berubah.
-                if (canvas.width !== 64) canvas.width = 64;
-                if (canvas.height !== 36) canvas.height = 36;
+    function renderCahaya(now, metadata) {
+        renderLoopId = null;
 
-                if (video.videoWidth > 0 && video.videoHeight > 0) {
-                    const potongY = video.videoHeight * 0.12;
-                    const tinggiBersih = video.videoHeight * 0.76;
-
-                    ctx.drawImage(video,0,potongY,video.videoWidth,
-                        tinggiBersih,0,0,canvas.width,canvas.height);
-                }
-            }
-
-            waktuTerakhirRender = timestamp;
+        if (!pengaturan.isAktif || video.paused || video.ended) {
+            return; 
         }
 
-        requestAnimationFrame(renderCahaya);
+        const timestamp = metadata ? metadata.expectedDisplayTime : now;
+
+        // Inisialisasi jadwal saat render pertama atau setelah reset
+        if (waktuRenderBerikutnya === null) {
+            waktuRenderBerikutnya = timestamp;
+        }
+
+        // Eksekusi render jika waktu saat ini sudah mencapai atau melewati jadwal
+        if (timestamp >= waktuRenderBerikutnya) {
+            if (canvas.width !== 64) canvas.width = 64;
+            if (canvas.height !== 36) canvas.height = 36;
+
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                const potongY = video.videoHeight * 0.12;
+                const tinggiBersih = video.videoHeight * 0.76;
+
+                // Frame pertama langsung tampil penuh, berikutnya bercampur untuk efek smoothing
+                ctx.globalAlpha = isFramePertama ? 1.0 : 0.3;
+
+                ctx.drawImage(
+                    video,
+                    0, potongY, video.videoWidth, tinggiBersih,
+                    0, 0, canvas.width, canvas.height
+                );
+
+                isFramePertama = false;
+            }
+
+            // Pertahankan jadwal target agar tidak selalu bergeser berdasarkan waktu render aktual
+            do {
+                waktuRenderBerikutnya += INTERVAL_RENDER;
+            } while (waktuRenderBerikutnya <= timestamp);
+        }
+
+        // Tetap gunakan mekanisme callback yang sudah ada
+        jadwalkanRender();
     }
 
-    // Terapkan pengaturan setelah canvas dibuat.
-    terapkanPengaturan();
-    requestAnimationFrame(renderCahaya);
+    // FUNGSI KONTROL SIKLUS (Anti Double-Loop)
+    function jadwalkanRender() {
+        if (renderLoopId !== null) return; // Mencegah dua siklus berjalan bersamaan
+        
+        if (isMendukungRVFC) {
+            renderLoopId = video.requestVideoFrameCallback(renderCahaya);
+        } else {
+            renderLoopId = requestAnimationFrame(renderCahaya);
+        }
+    }
+
+    function hentikanRender() {
+        if (renderLoopId === null) return;
+        
+        if (isMendukungRVFC) {
+            video.cancelVideoFrameCallback(renderLoopId);
+        } else {
+            cancelAnimationFrame(renderLoopId);
+        }
+        renderLoopId = null;
+    }
+
+    // EVENT LISTENERS UNTUK KONTROL SIKLUS OTOMATIS
+    video.addEventListener('play', () => {
+        isFramePertama = true; 
+        waktuRenderBerikutnya = null; // Tambahan Patch: Reset jadwal
+        
+        if (pengaturan.isAktif) jadwalkanRender();
+    });
+
+    video.addEventListener('pause', hentikanRender);
+    video.addEventListener('ended', hentikanRender);
+    
+    video.addEventListener('seeked', () => {
+        isFramePertama = true; 
+        waktuRenderBerikutnya = null; // Tambahan Patch: Reset jadwal saat di-skip
+    });
+
+    // Mulai render pertama kali jika video sedang berjalan
+    if (!video.paused && pengaturan.isAktif) {
+        jadwalkanRender();
+    }
 }
 
 // PBI 5: terapkan pengaturan popup.
 // TODO: Buat di dalam pengaturan Youtube / CSS injection
 function terapkanPengaturan() {
     const canvas = document.getElementById("vibe-ambient-canvas");
+    const video = document.querySelector("video.html5-main-video");
 
-    // Pengaturan tetap tersimpan meskipun canvas belum dibuat.
     if (!canvas) return;
 
     if (!pengaturan.isAktif) {
         canvas.style.display = "none";
+        // Panggil event pause tiruan agar render berhenti
+        if (video) video.dispatchEvent(new Event('pause')); 
         return;
     }
 
     canvas.style.display = "block";
-
-    const opacity = Math.max(0,Math.min(100, Number(pengaturan.opacity))) / 100;
-
+    const opacity = Math.max(0, Math.min(100, Number(pengaturan.opacity))) / 100;
+    
     temaGelap = document.documentElement.hasAttribute("dark");
-
-    const filterBase = temaGelap
-        ? "blur(4px) saturate(150%)"
-        : "blur(4px) saturate(200%)";
-
+    const filterBase = temaGelap ? "blur(4px) saturate(150%)" : "blur(4px) saturate(200%)";
+    
     canvas.style.filter = `${filterBase} opacity(${opacity})`;
 
     if (temaGelap) {
         canvas.style.removeProperty("mix-blend-mode");
     } else {
         canvas.style.mixBlendMode = "multiply";
+    }
+
+    // Pemicu agar saat dinyalakan dari mati, render berjalan lagi
+    if (video && !video.paused) {
+        video.dispatchEvent(new Event('play')); 
     }
 }
 
