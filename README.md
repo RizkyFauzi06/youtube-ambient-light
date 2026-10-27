@@ -59,19 +59,19 @@ Uses `requestVideoFrameCallback` where supported to synchronize rendering with v
 <p align="center">
   <strong>Ambient Light — Dark Mode</strong>
   <br><br>
-  <img src="C:\Coding\youtube-ambient-light\screenshots\Screenshot 2026-10-25 212212.png" alt="Ambient lighting in YouTube dark mode" width="90%">
+  <img src="screenshots/Screenshot 2026-10-25 212212.png" alt="Ambient lighting in YouTube dark mode" width="90%">
 </p>
 
 <p align="center">
   <strong>Ambient Light — Light Mode</strong>
   <br><br>
-  <img src="C:\Coding\youtube-ambient-light\screenshots\Screenshot 2026-10-25 212306.png" alt="Ambient lighting in YouTube light mode" width="90%">
+  <img src="screenshots/Screenshot 2026-10-25 212306.png" alt="Ambient lighting in YouTube light mode" width="90%">
 </p>
 
 <p align="center">
   <strong>Native Player Settings</strong>
   <br><br>
-  <img src="C:\Coding\youtube-ambient-light\screenshots\Screenshot 2026-10-25 212516.png" alt="Ambient Light controls in the YouTube player settings" width="75%">
+  <img src="screenshots/Screenshot 2026-10-25 212516.png" alt="Ambient Light controls in the YouTube player settings" width="75%">
 </p>
 
 ## How It Works
