@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="Screenshot%202026-10-25%20212212.png" alt="YouTube Ambient Light Vibe Edition running on YouTube" width="90%">
+  <img src="screenshots/Screenshot 2026-10-25 212212.png" alt="YouTube Ambient Light Vibe Edition running on YouTube" width="90%">
 </p>
 
 ---
